@@ -6,7 +6,7 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
-from models import db_session, Insumos, Galpoes , Blocos , Sensores, Setores , Leituras , AlertaOcorrencias # Certifique-se que o database.py está na mesma pasta
+from models import db_session, Insumos, Galpoes , Blocos , Sensores, Setores , Leituras , AlertaOcorrencias, Usuarios # Certifique-se que o database.py está na mesma pasta
 
 app = Flask(__name__)
 app.config['JWT_SECRET_KEY'] = 'batata'
@@ -38,9 +38,8 @@ def criar_galpao():
             json_galpao = request.get_json()
             nome = json_galpao.get('nome')
             descricao = json_galpao.get('descricao')
-            id_insumo = json_galpao.get('ID Insumo')
 
-            if not nome or not descricao or not id_insumo:
+            if not nome or not descricao    :
                 return jsonify({"msg": "Preencher todos os campos"})
 
             novo_galpao = Galpoes(
@@ -53,7 +52,6 @@ def criar_galpao():
                     "id": novo_galpao.id,
                     'nome': novo_galpao.nome,
                     'descricao': novo_galpao.descricao,
-                    'id_insumo': novo_galpao.id_insumos
                 }
 
             }), 201
@@ -69,13 +67,16 @@ def criar_galpao():
 def criar_bloco():
     db = db_session()
     dados = request.get_json()
+    print(dados)
     try:
         if request.method == 'POST':
             json_bloco = request.get_json()
             nome = json_bloco.get('nome')
-            id_galpao = json_bloco.get('ID Galpao')
-            id_insumo = json_bloco.get('ID Insumo')
-
+            id_galpao = json_bloco.get('id_galpao')
+            id_insumo = json_bloco.get('id_insumo')
+            print(nome)
+            print(id_galpao)
+            print(id_insumo)
             if not nome or not id_galpao or not id_insumo:
                 return jsonify({"msg": "Preencher todos os campos"})
 
@@ -109,9 +110,9 @@ def criar_setores():
         if request.method == 'POST':
             json_setor = request.get_json()
             nome = json_setor.get('nome')
-            id_galpao = json_setor.get('ID Galpao')
-            id_insumo = json_setor.get('ID Insumo')
-            id_bloco = json_setor.get('ID Bloco')
+            id_galpao = json_setor.get('id_galpao')
+            id_insumo = json_setor.get('id_insumo')
+            id_bloco = json_setor.get('id_bloco')
 
             if not nome or not id_galpao or not id_insumo or not id_bloco:
                 return jsonify({"msg": "Preencher todos os campos"})
@@ -143,22 +144,31 @@ def criar_setores():
 def criar_insumos():
     db = db_session()
     dados = request.get_json()
+    print(dados)
     try:
         if request.method == 'POST':
             json_insumo = request.get_json()
-            nome = json_insumo.get('Nome')
-            id_setor = json_insumo.get('ID Bloco')
-            tipo = json_insumo.get('Tipo Insumo')
-            umid_max = json_insumo.get('Umidade Maxima')
-            umid_min = json_insumo.get('Umidade Minima')
-            temp_max = json_insumo.get('Temperatura Maxima')
-            tem_min = json_insumo.get('Temperatura Minima')
-
-            if not nome or not id_setor or not tipo or not umid_max or not umid_min or not temp_max or not tem_min:
+            nome = json_insumo.get('nome')
+            tipo = json_insumo.get('tipo')
+            umidade_max = json_insumo.get('umidade_max')
+            umidade_min = json_insumo.get('umidade_min')
+            umidade_atual = json_insumo.get('umidade_atual')
+            temperatura_max = json_insumo.get('temperatura_max')
+            temperatura_min = json_insumo.get('temperatura_min')
+            temperatura_atual = json_insumo.get('temperatura_atual')
+            # print(nome)
+            # print(tipo)
+            # print(umidade_max,"ddd")
+            # print(umidade_min)
+            # print(umidade_atual)
+            # print(temperatura_max)
+            # print(temperatura_min)
+            # print(temperatura_atual)
+            if not nome or not tipo or not umidade_max or not umidade_min or not umidade_atual or not temperatura_max or not temperatura_min or not temperatura_atual:
                 return jsonify({"msg": "Preencher todos os campos"})
 
             novo_insumo = Insumos(
-                nome=nome)
+                nome=nome , tipo=tipo, umidade_max=umidade_max, umidade_min=umidade_min,umidade_atual=umidade_atual, temperatura_max=temperatura_max, temperatura_min=temperatura_min, temperatura_atual=temperatura_atual)
             db.add(novo_insumo)
             db.commit()
             return jsonify({
@@ -166,12 +176,13 @@ def criar_insumos():
                 'insumo': {
                     "id": novo_insumo.id_insumo,
                     'nome': novo_insumo.nome,
-                    'id_setor' : novo_insumo.id_setor,
                     'tipo' : novo_insumo.tipo,
-                    'umid_max' : novo_insumo.umidade_max,
-                    'umid_min' : novo_insumo.umidade_min,
-                    'temp_max' : novo_insumo.temperatura_max,
-                    'temp_min' : novo_insumo.temperatura_min
+                    'umidade_max' : novo_insumo.umidade_max,
+                    'umidade_min' : novo_insumo.umidade_min,
+                    'umidade_atual' : novo_insumo.umidade_atual,
+                    'temperatura_max' : novo_insumo.temperatura_max,
+                    'temperatura_min' : novo_insumo.temperatura_min,
+                    'temperatura_atual' : novo_insumo.temperatura_atual
                 }
 
             }), 201
@@ -189,9 +200,9 @@ def criar_leitura():
     try:
         if request.method == 'POST':
             json_leitura= request.get_json()
-            id_sensor = json_leitura.get('ID Sensor')
-            valor_leitura = json_leitura.get('Valor Leitura')
-            data_hora = json_leitura.get('Data Hora')
+            id_sensor = json_leitura.get('id_sensor')
+            valor_leitura = json_leitura.get('valor_leitura')
+            data_hora = json_leitura.get('data_hora')
 
             if not id_sensor or not valor_leitura or not data_hora:
                 return jsonify({"msg": "Preencher todos os campos"})
@@ -224,8 +235,8 @@ def criar_sensores():
     try:
         if request.method == 'POST':
             json_sensor = request.get_json()
-            id_setor = json_sensor.get('ID Setor')
-            id_insumo = json_sensor.get('ID Insumo')
+            id_setor = json_sensor.get('id_setor')
+            id_insumo = json_sensor.get('id_insumo')
 
             if not id_setor or not id_insumo :
                 return jsonify({"msg": "Preencher todos os campos"})
@@ -287,53 +298,129 @@ def criar_sensores():
 #         return jsonify({"Erro": str(e)}), 500
 #
 #     return jsonify(dados)
-@app.route('/todos_clientes')
-def clientes():
+@app.route('/todos_galpoes')
+def listar_galpoes():
     # Rota que estava faltando e causava o BuildError
     db = db_session()
     try:
-        api_cliente = select(Cliente)
-        result = db_session.execute(api_cliente).scalars().all()
-        clientes = []
-        for cliente in result:
-            clientes.append(cliente.serialize())
+        api_galpoes = select(Galpoes)
+        result = db_session.execute(api_galpoes).scalars().all()
+        galpoes = []
+        for galpao in result:
+            galpoes.append(galpao.serialize())
         print(result)
-        return jsonify({"clientes": clientes}), 200
+        return jsonify({"Galpoes": galpoes}), 200
     finally:
         db.close()
 
 
-@app.route('/todos_remetentes')
-def lista_remetente():
+@app.route('/todos_blocos')
+def listar_blocos():
     db = db_session()
     try:
-        api_remetente = select(Remetente)
-        result = db_session.execute(api_remetente).scalars().all()
-        remetente = []
-        for remetentes in result:
-            remetente.append(remetentes.serialize())
+        api_bloco = select(Blocos)
+        result = db_session.execute(api_bloco).scalars().all()
+        blocos = []
+        for bloco in result:
+            blocos.append(bloco.serialize())
         print(result)
-        return jsonify({"remetentes": remetente}), 200
+        return jsonify({"remetentes": blocos}), 200
     finally:
         db.close()
 
 
-@app.route('/todas_unidades')
-def unidades_centro():
+@app.route('/todos_setores')
+def listar_setores():
     # Rota que estava faltando e causava o BuildError
     db = db_session()
     try:
-        api_centro = select(Centro_distribuicao)
-        result = db_session.execute(api_centro).scalars().all()
-        centros = []
-        for centro_distribuicao in result:
-            centros.append(centro_distribuicao.serialize())
+        api_setor = select(Setores)
+        result = db_session.execute(api_setor).scalars().all()
+        setores = []
+        for setor in result:
+            setores.append(setor.serialize())
         print(result)
-        return jsonify({"centro_distribuicao": centros}), 200
+        return jsonify({"Setores": setores}), 200
+    finally:
+        db.close()
+
+@app.route('/todos_insumos')
+def listar_insumos():
+    # Rota que estava faltando e causava o BuildError
+    db = db_session()
+    try:
+        api_insumo = select(Insumos)
+        result = db_session.execute(api_insumo).scalars().all()
+        insumos = []
+        for insumo in result:
+            insumos.append(insumo.serialize())
+        print(result)
+        return jsonify({"Insumos": insumos}), 200
     finally:
         db.close()
 
 
+@app.route('/todos_sensores')
+def listar_sensores():
+    # Rota que estava faltando e causava o BuildError
+    db = db_session()
+    try:
+        api_sensor = select(Sensores)
+        result = db_session.execute(api_sensor).scalars().all()
+        sensores = []
+        for sensor in result:
+            sensores.append(sensor.serialize())
+        print(result)
+        return jsonify({"Sensores": sensores}), 200
+    finally:
+        db.close()
+
+
+@app.route('/todas_leituras')
+def listar_leituras():
+    # Rota que estava faltando e causava o BuildError
+    db = db_session()
+    try:
+        api_leitura = select(Leituras)
+        result = db_session.execute(api_leitura).scalars().all()
+        leituras = []
+        for leitura in result:
+            leituras.append(leitura.serialize())
+        print(result)
+        return jsonify({"Leitura": leituras}), 200
+    finally:
+        db.close()
+
+
+@app.route('/todos_usuarios')
+def listar_usuarios():
+    # Rota que estava faltando e causava o BuildError
+    db = db_session()
+    try:
+        api_usuario = select(Usuarios)
+        result = db_session.execute(api_usuario).scalars().all()
+        usuarios = []
+        for usuario in result:
+            usuarios.append(usuario.serialize())
+        print(result)
+        return jsonify({"Usuario": usuarios}), 200
+    finally:
+        db.close()
+
+@app.route('/todos_alertas')
+def listar_alertas():
+    # Rota que estava faltando e causava o BuildError
+    db = db_session()
+    try:
+        api_alerta = select(AlertaOcorrencias)
+        result = db_session.execute(api_alerta).scalars().all()
+        alertas = []
+        for alerta in result:
+            alertas.append(alerta.serialize())
+        print(result)
+        return jsonify({"Alerta": alertas}), 200
+    finally:
+        db.close()
 
 # --- ROTAS DE API (BACKEND) ---
 
@@ -345,19 +432,19 @@ def login():
         senha = dados.get('senha')
 
         db = db_session()
-        sql = select(Funcionario).where(Funcionario.email == email)
+        sql = select(Usuarios).where(Usuarios.email == email)
         usuario = db.execute(sql).scalar()
 
         # Importante: No database.py, a classe Usuario precisa do método check_password_hash
-        # if usuario and usuario.check_password_hash(senha):
-        #     access_token = create_access_token(identity=str(usuario.email))
-        #     texto = "Login realizado com sucesso"
-        #     return jsonify({
-        #         "Sistema": texto,
-        #
-        #         "Bem Vindo": usuario.nome,
-        #
-        #     }), 200
+        if usuario and usuario.check_password_hash(senha):
+            access_token = create_access_token(identity=str(usuario.email))
+            texto = "Login realizado com sucesso"
+            return jsonify({
+                "Sistema": texto,
+
+                "Bem Vindo": usuario.nome,
+
+            }), 200
 
         return jsonify({"msg": "E-mail ou senha incorretos"}), 401
     except Exception as e:
@@ -371,26 +458,20 @@ def cadastro():
     dados = request.get_json()
     nome = dados.get('nome')
     email = dados.get('email')
-    cep = dados.get('cep')
-    rua = dados.get('rua')
-    bairro = dados.get('bairro')
-    cidade = dados.get('cidade')
-    estado = dados.get('estado')
-    numero_casa = dados.get('numero_casa')
-    complemento = dados.get('complemento')
+    cpf = dados.get('cpf')
+    senha = dados.get('senha')
 
-    if not nome or not email:
+    if not nome or not email or not cpf:
         return jsonify({"msg": "Preencha todos os campos"}), 400
 
     db = db_session()
     try:
         # Verifica se email já existe
-        check = select(Cliente).where(Cliente.email == email)
+        check = select(Usuarios).where(Usuarios.email == email)
         if db.execute(check).scalar():
             return jsonify({"msg": "Email já cadastrado"}), 409
 
-        novo_cliente = Cliente(nome=nome, email=email, cep=cep, rua=rua, bairro=bairro, cidade=cidade, estado=estado,
-                               numero_casa=numero_casa, complemento=complemento)
+        novo_cliente = Usuarios(nome=nome, email=email, cpf=cpf)
         # Método que deve estar no database.py
 
         db.add(novo_cliente)
@@ -408,7 +489,7 @@ def verificar_email():
     try:
         json_funcionario_email = request.get_json()
         email = json_funcionario_email.get('email')
-        verifica_email = select(Funcionario).where(Funcionario.email == email)
+        verifica_email = select(Usuarios).where(Usuarios.email == email)
         existe_email = db.execute(verifica_email).scalar_one_or_none()
         print(email)
         if existe_email:
@@ -439,8 +520,8 @@ def cadastro_funcionario():
 
             if not nome or not email or not senha or not cpf:
                 return jsonify({"msg": "Preencher todos os campos"})
-            verifica_email = select(Funcionario).where(Funcionario.email == email)
-            verifica_cpf = select(Funcionario).where(Funcionario.cpf == cpf)
+            verifica_email = select(Usuarios).where(Usuarios.email == email)
+            verifica_cpf = select(Usuarios).where(Usuarios.cpf == cpf)
             existe_email = db.execute(verifica_email, ).scalar_one_or_none()
             existe_cpf = db.execute(verifica_cpf, ).scalar_one_or_none()
             if existe_email:
@@ -452,7 +533,7 @@ def cadastro_funcionario():
             if existe_cpf:
                 return jsonify({"msg": "cpf ja existente"})
 
-            novo_funcionario = Funcionario(nome=nome, email=email, cpf=cpf, senha=senha)
+            novo_funcionario = Usuarios(nome=nome, email=email, cpf=cpf)
             # novo_funcionario.set_password(senha)
             db.add(novo_funcionario)
             db.commit()
@@ -466,241 +547,6 @@ def cadastro_funcionario():
     return jsonify(dados)
 
 
-@app.route('/encomendas', methods=['POST'])
-def cadastro_encomenda():
-    db = db_session()
-    try:
-        json_encomenda = request.get_json()
-        fragilidade = json_encomenda.get('fragilidade')
-        tipo = json_encomenda.get('tipo')
-        remetente_id = json_encomenda.get('remetente_id')
-        cliente_id = json_encomenda.get('cliente_id')
-
-        if not fragilidade or not tipo or not cliente_id or not remetente_id:
-            return jsonify({"msg": "Os campos nome, fragilidade e tipo são obrigatórios"}), 400
-        codigo_gerado = gerar_codigo_unico(db)
-
-        nova_encomenda = Emcomenda(
-            codigo_rastreio=codigo_gerado,
-            fragilidade=fragilidade,
-            tipo=tipo,
-            remetente_id=remetente_id,
-            cliente_id=cliente_id
-        )
-
-        db.add(nova_encomenda)
-        db.commit()
-
-        return jsonify({"msg": "Encomenda cadastrada com sucesso",
-                        "encomenda_id": nova_encomenda.id,
-                        "codigo_rastreio": nova_encomenda.codigo_rastreio,
-                        "fragilidade": nova_encomenda.fragilidade,
-                        "tipo": nova_encomenda.tipo,
-                        "cliente_id": nova_encomenda.cliente_id,
-                        "rementente_id": nova_encomenda.remetente_id
-                        }), 201
-
-    except Exception as e:
-        db.rollback()
-        print(e)
-        return jsonify({"msg": f"Erro ao cadastrar encomenda: {str(e)}"}), 500
-    finally:
-        db.close()
-
-
-@app.route('/unidades', methods=['POST'])
-def centro_distribuicao():
-    db = db_session()
-    dados = request.get_json()
-    try:
-        if request.method == 'POST':
-            json_distribuicao = request.get_json()
-            nome = json_distribuicao.get('nome')
-            cidade = json_distribuicao.get('cidade')
-            estado = json_distribuicao.get('estado')
-
-            if not cidade or not estado:
-                return jsonify({"msg": "Preencher todos os campos"})
-
-            novo_centro_distribuicao = Centro_distribuicao(
-                nome=nome, cidade=cidade, estado=estado)
-            db.add(novo_centro_distribuicao)
-            db.commit()
-            return jsonify({
-                "msg": "Movimentacao feita com sucesso",
-                'unidades': {
-                    "id": novo_centro_distribuicao.id,
-                    'nome': novo_centro_distribuicao.nome,
-                    'cidade': novo_centro_distribuicao.cidade,
-                    'estado': novo_centro_distribuicao.estado
-                }
-
-            }), 201
-
-    except Exception as e:
-        db.rollback()
-        return jsonify({"Erro": str(e)}), 500
-
-    return jsonify(dados)
-
-
-@app.route('/movimentacoes', methods=['POST'])
-def cadastro_movimentacao():
-    db = db_session()
-    try:
-        if request.method == 'POST':
-            json_movimentacao = request.get_json()
-            encomenda_id = json_movimentacao.get('encomenda_id')
-            centro_id = json_movimentacao.get('centro_id')
-            print("luciano lindo", encomenda_id, centro_id)
-            if not encomenda_id or not centro_id:
-                return jsonify({"msg": "Preencher todos os campos"}), 400
-            # Verificar a ultima movimentação da encomenda
-            # Fazer um select para trazer essa movimentação
-            sql_movimentacao = (select(Movimentacao, Centro_distribuicao).where(Movimentacao.encomenda_id == encomenda_id)
-                                .join(Centro_distribuicao, Centro_distribuicao.id == Movimentacao.centro_id)
-                                .order_by(Movimentacao.criado_em.desc()).limit(1))
-            ultima_movimentacao = db_session.execute(sql_movimentacao).tuples().one_or_none()
-
-            print("hoje",ultima_movimentacao)
-
-
-
-            comparar_cidade = (
-                select(Cliente, Emcomenda).where(Emcomenda.id == encomenda_id)
-                .join(Emcomenda, Cliente.id == Emcomenda.cliente_id)
-            )
-            encomenda_cliente = db_session.execute(comparar_cidade).scalars().one_or_none()
-
-            if ultima_movimentacao is None:
-                tipo = 'saida'
-            else:
-                movs = []
-                for item in ultima_movimentacao:
-                    movs.append(item.serialize())
-                if movs[0]["tipo"] == 'saida':
-
-                    tipo = 'chegada'
-                    if movs[0]["localizacao"] == centro_id:
-                        return jsonify({
-                            "msg": "Não pode chegar no mesmo lugar que saiu",
-                        }), 400
-                else:
-                    tipo = 'saida'
-                    # Achar como trazer o centro no join da ultima_movimentacao
-                    if movs[1]["cidade"] == encomenda_cliente.cidade:
-                        tipo = 'entregue'
-
-            nova_movimentacao = Movimentacao(
-                tipo=tipo, encomenda_id=encomenda_id, centro_id=centro_id
-            )
-            db.add(nova_movimentacao)
-            db.commit()
-
-            return jsonify({
-                "msg": "Movimentacao feita com sucesso",
-                'movimentacao': {
-                    "id": nova_movimentacao.id,
-                    'criado_em': nova_movimentacao.criado_em.strftime('%d/%m/%Y'),
-                    'tipo': nova_movimentacao.tipo
-                }
-
-            }), 201
-
-    except Exception as e:
-        db.rollback()
-        print("erro", e)
-        return jsonify({"Erro": str(e)}), 500
-
-
-@app.route('/remetente', methods=['POST'])
-def cadastro_remetente():
-    db = db_session()
-    try:
-        if request.method == 'POST':
-            json_remetente = request.get_json()
-            nome = json_remetente.get('nome')
-            cidade = json_remetente.get('cidade')
-            estado = json_remetente.get('estado')
-
-            if not cidade or not estado:
-                return jsonify({"msg": "Preencher todos os campos"})
-
-            novo_remetente = Remetente(
-                nome=nome, cidade=cidade, estado=estado)
-            db.add(novo_remetente)
-            db.commit()
-            return jsonify({
-                "msg": "Remetente cadastrado com sucesso",
-                'remetente': {
-                    "id": novo_remetente.id,
-                    'nome': novo_remetente.nome,
-                    'cidade': novo_remetente.cidade,
-                    'estado': novo_remetente.estado
-                }
-
-            }), 201
-
-    except Exception as e:
-        db.rollback()
-        return jsonify({"Erro": str(e)}), 500
-
-
-@app.route('/rastreio', methods=['POST'])
-def rastreio_encomenda():
-    db = db_session()
-    try:
-        json_rastreio = request.get_json()
-        codigo = json_rastreio.get('codigo')
-
-        # traz a encomenda de acordo com o codigo
-        rastrear_encomenda = select(Emcomenda).where(Emcomenda.codigo_rastreio == codigo)
-        encomenda = db_session.execute(rastrear_encomenda).scalars().one_or_none()
-
-        # traz as movimentacoes da encomenda de acordo com seu id
-        rastrear_id_encomenda = select(Movimentacao).where(Movimentacao.encomenda_id == encomenda.id)
-        movimentacao_encomenda = db_session.execute(rastrear_id_encomenda).scalars().all()
-
-        movimentacoes = []
-        for movimentacao in movimentacao_encomenda:
-            sql_centro = select(Centro_distribuicao).where(Centro_distribuicao.id == movimentacao.centro_id)
-            centro = db_session.execute(sql_centro).scalars().one_or_none()
-
-            movimentacoes.append(movimentacao.serialize(centro))
-
-        sql_cliente = select(Cliente).where(Cliente.id == encomenda.cliente_id)
-        sql_remetente = select(Remetente).where(Remetente.id == encomenda.remetente_id)
-        cliente = db_session.execute(sql_cliente).scalars().one_or_none()
-        remetente = db_session.execute(sql_remetente).scalars().one_or_none()
-
-        print(encomenda)
-        return jsonify({"encomenda": encomenda.serialize(cliente, remetente),
-                        "movimentacoes": movimentacoes
-                        })
-    except Exception as e:
-        db.rollback()
-        return jsonify({"Erro": str(e)}), 500
-
-
-def gerar_codigo_unico(db):
-    data = datetime.datetime.now()
-    alfabeto = ["a", "b", "c", "d", "e", "f", "g", "h",
-                "i", "j", "k", "l", "m", "n", "o", "p",
-                "q", "r", "s", "t", "u", "v", "w", "x", "y", "z"]
-
-    codigo_1 = random.choice(alfabeto).upper()
-    codigo_2 = random.choice(alfabeto).upper()
-    codigo_3 = random.choice(alfabeto).upper()
-    codigo_unico = str(data.timestamp()).replace(".", "")
-    codigo_final = str(codigo_1 + codigo_2 + codigo_3) + codigo_unico
-
-    consulta = select(Emcomenda).where(Emcomenda.codigo_rastreio == codigo_final)
-    resultado = db.execute(consulta).scalars().first()
-
-    if resultado:
-        return gerar_codigo_unico(db)
-
-    return codigo_final
 
 
 @app.route('/api/dados_protegidos', methods=['GET'])
