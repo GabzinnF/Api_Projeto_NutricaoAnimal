@@ -16,7 +16,8 @@ Base = declarative_base()
 class Insumos(Base):
     __tablename__ = 'insumos'
     id_insumo = Column(Integer, primary_key=True)
-    tipo = Column(Integer)
+    id_setor = Column(Integer)
+    tipo = Column(String(255))
     nome = Column(String(100))
     umidade_max = Column(Integer)
     umidade_min = Column(Integer)
@@ -24,8 +25,8 @@ class Insumos(Base):
     temperatura_min = Column(Integer)
     def serialize(self, centro=None):
         dados = {
-            'id': self.id,
-            'idSensores': self.idSensores,
+            'id': self.id_insumo,
+            'idSensores': self.id_setor,
             'tipo': self.tipo,
             'nome': self.nome,
             'umidade_max': self.umidade_max,
@@ -86,8 +87,8 @@ class Setores (Base):
         }
         return dados
 
-class Sensor (Base):
-    __tablename__ = 'sensors'
+class Sensores (Base):
+    __tablename__ = 'sensores'
     id = Column(Integer, primary_key=True)
     id_setor = Column(Integer,ForeignKey('setores.id'), nullable=False)
     id_insumos = Column(Integer,ForeignKey('insumos.id'), nullable=False)
@@ -102,17 +103,17 @@ class Sensor (Base):
         }
         return dados
 
-class Leitura (Base):
-    __tablename__ = 'leituras'
+class Leituras (Base):
+    __tablename__ = 'leitura'
     id = Column(Integer, primary_key=True)
-    idSensor = Column(Integer,ForeignKey('sensors.id'), nullable=False)
+    id_sensor = Column(Integer,ForeignKey('sensors.id'), nullable=False)
     valor_leitura = Column(Float)
     data_hora= Column(DateTime,default=func.now)
 
     def serialize(self):
         dados = {
             'id': self.id,
-            'idSensor': self.idSensor,
+            'idSensor': self.id_sensor,
             'valor_leitura': self.valor_leitura,
             'data_hora': self.data_hora,
         }
@@ -136,3 +137,10 @@ class AlertaOcorrencias(Base):
             'data_hora_fim': self.data_hora_fim,
             'tipo_alerta': self.tipo_alerta,
         }
+
+class Usuarios(Base):
+    __tablename__ = 'usuarios'
+    id = Column(Integer, primary_key=True)
+    nome = Column(String(255))
+    cpf = Column(String(11))
+    email = Column(String(255))

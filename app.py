@@ -6,7 +6,7 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
-from models import db_session, Insumos, Galpoes , Blocos , Sensor, Setores , Leitura , AlertaOcorrencias # Certifique-se que o database.py está na mesma pasta
+from models import db_session, Insumos, Galpoes , Blocos , Sensores, Setores , Leituras , AlertaOcorrencias # Certifique-se que o database.py está na mesma pasta
 
 app = Flask(__name__)
 app.config['JWT_SECRET_KEY'] = 'batata'
@@ -29,7 +29,7 @@ def tela_cadastro():
 
 
 
-@app.route('/api/criar_galpoes', methods=['POST'])
+@app.route('/api/cadastrar_galpoes', methods=['POST'])
 def criar_galpao():
     db = db_session()
     dados = request.get_json()
@@ -49,7 +49,7 @@ def criar_galpao():
             db.commit()
             return jsonify({
                 "msg": "Galpão criado com sucesso",
-                'galpões': {
+                'galpao': {
                     "id": novo_galpao.id,
                     'nome': novo_galpao.nome,
                     'descricao': novo_galpao.descricao,
@@ -65,7 +65,7 @@ def criar_galpao():
     return jsonify(dados)
 
 
-@app.route('/api/criar_blocos', methods=['POST'])
+@app.route('/api/cadastrar_blocos', methods=['POST'])
 def criar_bloco():
     db = db_session()
     dados = request.get_json()
@@ -101,7 +101,7 @@ def criar_bloco():
     return jsonify(dados)
 
 
-@app.route('/api/criar_setores', methods=['POST'])
+@app.route('/api/cadastrar_setores', methods=['POST'])
 def criar_setores():
     db = db_session()
     dados = request.get_json()
@@ -122,12 +122,12 @@ def criar_setores():
             db.commit()
             return jsonify({
                 "msg": "Bloco criado com sucesso",
-                'bloco': {
+                'setor': {
                     "id": novo_setor.id,
                     'nome': novo_setor.nome,
                     'id_galpao': novo_setor.id_galpoes,
                     'id_insumo': novo_setor.id_insumos,
-                    'id_bloco' : novo_setor.id_blocos
+
                 }
 
             }), 201
@@ -139,6 +139,154 @@ def criar_setores():
     return jsonify(dados)
 
 
+@app.route('/api/cadastrar_insumos', methods=['POST'])
+def criar_insumos():
+    db = db_session()
+    dados = request.get_json()
+    try:
+        if request.method == 'POST':
+            json_insumo = request.get_json()
+            nome = json_insumo.get('Nome')
+            id_setor = json_insumo.get('ID Bloco')
+            tipo = json_insumo.get('Tipo Insumo')
+            umid_max = json_insumo.get('Umidade Maxima')
+            umid_min = json_insumo.get('Umidade Minima')
+            temp_max = json_insumo.get('Temperatura Maxima')
+            tem_min = json_insumo.get('Temperatura Minima')
+
+            if not nome or not id_setor or not tipo or not umid_max or not umid_min or not temp_max or not tem_min:
+                return jsonify({"msg": "Preencher todos os campos"})
+
+            novo_insumo = Insumos(
+                nome=nome)
+            db.add(novo_insumo)
+            db.commit()
+            return jsonify({
+                "msg": "Insumo cadastrado com sucesso",
+                'insumo': {
+                    "id": novo_insumo.id_insumo,
+                    'nome': novo_insumo.nome,
+                    'id_setor' : novo_insumo.id_setor,
+                    'tipo' : novo_insumo.tipo,
+                    'umid_max' : novo_insumo.umidade_max,
+                    'umid_min' : novo_insumo.umidade_min,
+                    'temp_max' : novo_insumo.temperatura_max,
+                    'temp_min' : novo_insumo.temperatura_min
+                }
+
+            }), 201
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({"Erro": str(e)}), 500
+
+    return jsonify(dados)
+
+@app.route('/api/cadastrar_leitura', methods=['POST'])
+def criar_leitura():
+    db = db_session()
+    dados = request.get_json()
+    try:
+        if request.method == 'POST':
+            json_leitura= request.get_json()
+            id_sensor = json_leitura.get('ID Sensor')
+            valor_leitura = json_leitura.get('Valor Leitura')
+            data_hora = json_leitura.get('Data Hora')
+
+            if not id_sensor or not valor_leitura or not data_hora:
+                return jsonify({"msg": "Preencher todos os campos"})
+
+            nova_leitura = Leituras(
+                valor_leitura=valor_leitura,)
+            db.add(nova_leitura)
+            db.commit()
+            return jsonify({
+                "msg": "Bloco criado com sucesso",
+                'leitura': {
+                    'id' : nova_leitura.id,
+                    'id_sensor' : nova_leitura.id_sensor,
+                    'valor_leitura' : nova_leitura.valor_leitura,
+                    'data_hora' : nova_leitura.data_hora
+                }
+
+            }), 201
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({"Erro": str(e)}), 500
+
+    return jsonify(dados)
+
+@app.route('/api/cadastrar_sensores', methods=['POST'])
+def criar_sensores():
+    db = db_session()
+    dados = request.get_json()
+    try:
+        if request.method == 'POST':
+            json_sensor = request.get_json()
+            id_setor = json_sensor.get('ID Setor')
+            id_insumo = json_sensor.get('ID Insumo')
+
+            if not id_setor or not id_insumo :
+                return jsonify({"msg": "Preencher todos os campos"})
+
+            novo_sensor = Sensores(
+                id_setor=id_setor)
+            db.add(novo_sensor)
+            db.commit()
+            return jsonify({
+                "msg": "Sensor cadastrado com sucesso",
+                'sensor': {
+                    "id": novo_sensor.id,
+                    'id_setor' : novo_sensor.id_setor,
+                    'id_insumo' : novo_sensor.id_insumos
+
+                }
+
+            }), 201
+
+    except Exception as e:
+        db.rollback()
+        return jsonify({"Erro": str(e)}), 500
+
+    return jsonify(dados)
+
+# @app.route('/api/alertas_ocorrencias', methods=['GET'])
+# def alerta_ocorrencias():
+#     db = db_session()
+#     dados = request.get_json()
+#     try:
+#         if request.method == 'GET':
+#             json_setor = request.get_json()
+#             nome = json_setor.get('nome')
+#             id_galpao = json_setor.get('ID Galpao')
+#             id_insumo = json_setor.get('ID Insumo')
+#             id_bloco = json_setor.get('ID Bloco')
+#
+#             if not nome or not id_galpao or not id_insumo or not id_bloco:
+#                 return jsonify({"msg": "Preencher todos os campos"})
+#
+#             novo_setor = Blocos(
+#                 nome=nome)
+#             db.add(novo_setor)
+#             db.commit()
+#             return jsonify({
+#                 "msg": "Bloco criado com sucesso",
+#                 'bloco': {
+#                     "id": novo_setor.id,
+#                     'nome': novo_setor.nome,
+#                     'id_galpao': novo_setor.id_galpoes,
+#                     'id_insumo': novo_setor.id_insumos,
+#                     'id_bloco' : novo_setor.id_blocos
+#                 }
+#
+#             }), 201
+#
+#     except Exception as e:
+#         db.rollback()
+#         return jsonify({"Erro": str(e)}), 500
+#
+#     return jsonify(dados)
 @app.route('/todos_clientes')
 def clientes():
     # Rota que estava faltando e causava o BuildError
