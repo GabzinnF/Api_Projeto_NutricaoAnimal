@@ -216,7 +216,6 @@ def criar_leitura():
             db.commit()
             return jsonify({
 
-
                 "msg": "Leitura criado com sucesso",
                 'leitura': {
                     'id' : nova_leitura.id_leitura,
