@@ -95,6 +95,7 @@ class Sensores (Base):
         }
         return dados
 
+
 class Leituras (Base):
     __tablename__ = 'leituras'
     id_leitura = Column(Integer, primary_key=True)
