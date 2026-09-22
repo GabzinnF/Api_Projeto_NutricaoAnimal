@@ -5,7 +5,7 @@ from flask import Flask, jsonify, request, render_template, url_for
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, JWTManager
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
-
+from datetime import datetime
 from models import db_session, Insumos, Galpoes , Blocos , Sensores, Setores , Leituras , AlertaOcorrencias, Usuarios # Certifique-se que o database.py está na mesma pasta
 
 app = Flask(__name__)
@@ -73,24 +73,21 @@ def criar_bloco():
             json_bloco = request.get_json()
             nome = json_bloco.get('nome')
             id_galpao = json_bloco.get('id_galpao')
-            id_insumo = json_bloco.get('id_insumo')
             print(nome)
             print(id_galpao)
-            print(id_insumo)
-            if not nome or not id_galpao or not id_insumo:
+            if not nome or not id_galpao:
                 return jsonify({"msg": "Preencher todos os campos"})
 
             novo_bloco = Blocos(
-                nome=nome)
+                nome=nome, id_galpao=id_galpao)
             db.add(novo_bloco)
             db.commit()
             return jsonify({
                 "msg": "Bloco criado com sucesso",
                 'bloco': {
-                    "id": novo_bloco.id,
+                    "id": novo_bloco.id_bloco,
                     'nome': novo_bloco.nome,
-                    'id_galpao': novo_bloco.id_galpoes,
-                    'id_insumo': novo_bloco.id_insumos
+                    'id_galpao': novo_bloco.id_galpao,
                 }
 
             }), 201
@@ -106,28 +103,29 @@ def criar_bloco():
 def criar_setores():
     db = db_session()
     dados = request.get_json()
+    print(dados)
     try:
         if request.method == 'POST':
             json_setor = request.get_json()
             nome = json_setor.get('nome')
-            id_galpao = json_setor.get('id_galpao')
             id_insumo = json_setor.get('id_insumo')
             id_bloco = json_setor.get('id_bloco')
+            capacidade = json_setor.get('capacidade')
 
-            if not nome or not id_galpao or not id_insumo or not id_bloco:
+            if not nome or not id_insumo or not id_bloco or not capacidade:
                 return jsonify({"msg": "Preencher todos os campos"})
 
-            novo_setor = Blocos(
-                nome=nome)
+            novo_setor = Setores(
+                nome=nome,id_bloco=id_bloco, id_insumo=id_insumo, capacidade=capacidade)
             db.add(novo_setor)
             db.commit()
             return jsonify({
-                "msg": "Bloco criado com sucesso",
+                "msg": "Setor criado com sucesso",
                 'setor': {
-                    "id": novo_setor.id,
+                    "id_setor": novo_setor.id_setor,
                     'nome': novo_setor.nome,
-                    'id_galpao': novo_setor.id_galpoes,
-                    'id_insumo': novo_setor.id_insumos,
+                    'id_insumo': novo_setor.id_insumo,
+                    'capacidade' : novo_setor.capacidade
 
                 }
 
@@ -152,10 +150,10 @@ def criar_insumos():
             tipo = json_insumo.get('tipo')
             umidade_max = json_insumo.get('umidade_max')
             umidade_min = json_insumo.get('umidade_min')
-            umidade_atual = json_insumo.get('umidade_atual')
             temperatura_max = json_insumo.get('temperatura_max')
             temperatura_min = json_insumo.get('temperatura_min')
-            temperatura_atual = json_insumo.get('temperatura_atual')
+            quantidade = json_insumo.get('quantidade')
+            unidade_medida= json_insumo.get('unidade_medida')
             # print(nome)
             # print(tipo)
             # print(umidade_max,"ddd")
@@ -164,11 +162,13 @@ def criar_insumos():
             # print(temperatura_max)
             # print(temperatura_min)
             # print(temperatura_atual)
-            if not nome or not tipo or not umidade_max or not umidade_min or not umidade_atual or not temperatura_max or not temperatura_min or not temperatura_atual:
+            if (not nome or not tipo or not umidade_max or not umidade_min or not temperatura_max or not temperatura_min
+                    or not quantidade or not unidade_medida):
                 return jsonify({"msg": "Preencher todos os campos"})
 
             novo_insumo = Insumos(
-                nome=nome , tipo=tipo, umidade_max=umidade_max, umidade_min=umidade_min,umidade_atual=umidade_atual, temperatura_max=temperatura_max, temperatura_min=temperatura_min, temperatura_atual=temperatura_atual)
+                nome=nome , tipo=tipo, umidade_max=umidade_max, umidade_min=umidade_min, temperatura_max=temperatura_max,
+                temperatura_min=temperatura_min, quantidade=quantidade, unidade_medida=unidade_medida)
             db.add(novo_insumo)
             db.commit()
             return jsonify({
@@ -179,10 +179,10 @@ def criar_insumos():
                     'tipo' : novo_insumo.tipo,
                     'umidade_max' : novo_insumo.umidade_max,
                     'umidade_min' : novo_insumo.umidade_min,
-                    'umidade_atual' : novo_insumo.umidade_atual,
                     'temperatura_max' : novo_insumo.temperatura_max,
                     'temperatura_min' : novo_insumo.temperatura_min,
-                    'temperatura_atual' : novo_insumo.temperatura_atual
+                    'quantidade' : novo_insumo.quantidade,
+                    'unidade_medida' : novo_insumo.unidade_medida
                 }
 
             }), 201
@@ -199,24 +199,29 @@ def criar_leitura():
     dados = request.get_json()
     try:
         if request.method == 'POST':
+
             json_leitura= request.get_json()
             id_sensor = json_leitura.get('id_sensor')
-            valor_leitura = json_leitura.get('valor_leitura')
-            data_hora = json_leitura.get('data_hora')
+            valor_leitura_umidade = json_leitura.get('valor_leitura_umidade')
+            valor_leitura_temperatura = json_leitura.get('valor_leitura_temperatura')
+            data_hora = datetime.now()
 
-            if not id_sensor or not valor_leitura or not data_hora:
+            if not id_sensor or not valor_leitura_temperatura or not valor_leitura_umidade :
                 return jsonify({"msg": "Preencher todos os campos"})
 
-            nova_leitura = Leituras(
-                valor_leitura=valor_leitura,)
+            nova_leitura = (Leituras
+                (
+                valor_leitura_temperatura=valor_leitura_temperatura,valor_leitura_umidade=valor_leitura_umidade, id_sensor=id_sensor, data_hora=data_hora))
             db.add(nova_leitura)
             db.commit()
             return jsonify({
-                "msg": "Bloco criado com sucesso",
+
+                "msg": "Leitura criado com sucesso",
                 'leitura': {
-                    'id' : nova_leitura.id,
+                    'id' : nova_leitura.id_leitura,
                     'id_sensor' : nova_leitura.id_sensor,
-                    'valor_leitura' : nova_leitura.valor_leitura,
+                    'valor_leitura_temperatura' : nova_leitura.valor_leitura_temperatura,
+                    'valor_leitura_umidade' : nova_leitura.valor_leitura_umidade,
                     'data_hora' : nova_leitura.data_hora
                 }
 
@@ -232,13 +237,13 @@ def criar_leitura():
 def criar_sensores():
     db = db_session()
     dados = request.get_json()
+    print(dados)
     try:
         if request.method == 'POST':
             json_sensor = request.get_json()
             id_setor = json_sensor.get('id_setor')
-            id_insumo = json_sensor.get('id_insumo')
 
-            if not id_setor or not id_insumo :
+            if not id_setor :
                 return jsonify({"msg": "Preencher todos os campos"})
 
             novo_sensor = Sensores(
@@ -248,9 +253,8 @@ def criar_sensores():
             return jsonify({
                 "msg": "Sensor cadastrado com sucesso",
                 'sensor': {
-                    "id": novo_sensor.id,
+                    "id_sensor": novo_sensor.id_sensor,
                     'id_setor' : novo_sensor.id_setor,
-                    'id_insumo' : novo_sensor.id_insumos
 
                 }
 
