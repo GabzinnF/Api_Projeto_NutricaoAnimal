@@ -133,23 +133,38 @@ class AlertaOcorrencias(Base):
             'tipo_alerta': self.tipo_alerta,
             'status_': self.status_,
         }
+        return dados
 
 class Usuarios(Base):
     __tablename__ = 'usuarios'
-    id = Column(Integer, primary_key=True)
+    id_usuario = Column(Integer, primary_key=True)
     nome = Column(String(255))
     cpf = Column(String(11))
     email = Column(String(255))
-    senha_hash = Column(String(255))
+    senha = Column(String(255))
 
     def serialize(self):
         dados = {
-            'id': self.id,
+            'id': self.id_usuario,
             'nome': self.nome,
             'cpf': self.cpf,
             'email': self.email,
-            'senha_hash': self.senha_hash,
+            'senha' : self.senha
         }
+        return dados
+
+
+    def __repr__(self):
+        return f'<Usuarios {self.nome}>'
+
+
+    def set_password(self, password):
+        self.senha = generate_password_hash(password)
+
+
+    def check_password(self, password):
+        return check_password_hash(self.senha, password)
+
 
 '''
 No "prever a temp e umidade" seria o seguinte. vamos supor que o mulho aguente 80% de umidade e 20 de temp.

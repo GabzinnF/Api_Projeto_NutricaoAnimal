@@ -3,6 +3,7 @@ import random
 import string
 from flask import Flask, jsonify, request, render_template, url_for
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, JWTManager
+from flask_login import login_manager
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from datetime import datetime
@@ -13,6 +14,15 @@ app.config['JWT_SECRET_KEY'] = 'batata'
 jwt = JWTManager(app)
 
 
+# @app.teardown_appcontext
+# def shutdown_session(exception=None):
+#     db_session.remove()
+#
+# @login_manager.user_loader
+# def load_user(user_id):
+#     user = select(Usuarios).where(Usuarios.id_usuario == int(user_id))
+#     resultado = db_session.execute(user).scalar_one_or_none()
+#     return resultado
 @app.route('/')
 def home():
     return jsonify({"status": "API de Monitoramento de Nutrição Animal Ativa"}), 200
@@ -27,7 +37,76 @@ def tela_login():
 def tela_cadastro():
     return render_template('cadastro.html')
 
+@app.route('/cadastro_usuario', methods=['POST', 'GET'])
+def cadastro_usuario():
+    dados = request.get_json()
+    nome = dados.get('nome')
+    email = dados.get('email')
+    cpf = dados.get('cpf')
+    senha =  dados.get('senha')
+    print(dados)
 
+    if not nome or not email or not cpf or not senha:
+        return jsonify({"msg": "Preencha todos os campos"}), 400
+
+    try:
+        # Verifica se email já existe
+        if not nome or not email or not senha or not cpf:
+            return jsonify({"msg": "Preencher todos os campos"})
+
+        user_check = select(Usuarios).where(Usuarios.nome == nome, Usuarios.email == email)
+        usuario_existente = db_session.execute(user_check).scalar()
+
+        if usuario_existente:
+            dados = {"msg" : "Usuario ja existente"}
+            return jsonify(dados), 409
+
+        novo_usuario = Usuarios(nome=nome, email=email, cpf=cpf)
+        # Método que deve estar no database.py
+        novo_usuario.set_password(senha) #essa linha peguei da IA
+
+        # print(f"SENHA ORIGINAL (LIMPA): {senha}")
+        # print(f"SENHA TRANSFORMA EM HASH: {novo_usuario.senha}")
+        # #esses print peguei da IA
+
+        db_session.add(novo_usuario)
+        db_session.commit()
+        return jsonify({
+            "msg": "Usuario criado com sucesso",
+            'usuario': {
+                "id": novo_usuario.id_usuario,
+                'nome': novo_usuario.nome,
+                'email': novo_usuario.email,
+                'cpf': novo_usuario.cpf,
+            }
+
+        }), 201
+    except Exception as e:
+        db_session.rollback()
+        return jsonify({"msg": str(e)}), 500
+    finally:
+        db_session.close()
+
+# @app.route('/verificar_email',methods=['POST'])
+# def verificar_email():
+#     db = db_session()
+#     try:
+#         json_funcionario_email = request.get_json()
+#         email = json_funcionario_email.get('email')
+#         verifica_email = select(Usuarios).where(Usuarios.email == email)
+#         existe_email = db.execute(verifica_email).scalar_one_or_none()
+#         print(email)
+#         if existe_email:
+#             return jsonify({"funcionario":existe_email.serialize()}), 200
+#
+#         else:
+#
+#             return jsonify({"msg": "Email não existe"}), 400
+#
+#     except SQLAlchemyError as e:
+#         return jsonify({"msg": f"Erro na base de dados ao logar funcionario: {str(e)}"})
+#     except Exception as e:
+#         return jsonify({"msg": f"Erro ao logar funcionario: {str(e)}"}), 500
 
 @app.route('/api/cadastrar_galpoes', methods=['POST'])
 def criar_galpao():
@@ -328,7 +407,7 @@ def listar_blocos():
         for bloco in result:
             blocos.append(bloco.serialize())
         print(result)
-        return jsonify({"remetentes": blocos}), 200
+        return jsonify({"Blocos": blocos}), 200
     finally:
         db.close()
 
@@ -403,10 +482,11 @@ def listar_usuarios():
     try:
         api_usuario = select(Usuarios)
         result = db_session.execute(api_usuario).scalars().all()
+
         usuarios = []
         for usuario in result:
             usuarios.append(usuario.serialize())
-        print(result)
+        print(usuarios)
         return jsonify({"Usuario": usuarios}), 200
     finally:
         db.close()
@@ -426,131 +506,107 @@ def listar_alertas():
     finally:
         db.close()
 
-# --- ROTAS DE API (BACKEND) ---
-
 @app.route('/api/login', methods=['POST'])
 def login():
-    try:
-        dados = request.get_json()
-        email = dados.get('email')
-        senha = dados.get('senha')
+    if request.method == 'POST':
+        try:
+            dados = request.get_json()
+            email = dados.get('email')
+            senha = dados.get('senha')
 
-        db = db_session()
-        sql = select(Usuarios).where(Usuarios.email == email)
-        usuario = db.execute(sql).scalar()
+            db = db_session()
+            sql = select(Usuarios).where(Usuarios.email == email)
+            usuario = db.execute(sql).scalar()
 
-        # Importante: No database.py, a classe Usuario precisa do método check_password_hash
-        if usuario and usuario.check_password_hash(senha):
-            access_token = create_access_token(identity=str(usuario.email))
-            texto = "Login realizado com sucesso"
-            return jsonify({
-                "Sistema": texto,
+            print(usuario)
 
-                "Bem Vindo": usuario.nome,
+            # Importante: No database.py, a classe Usuario precisa do metodo check_password_hash
+            if usuario and usuario.check_password_hash(senha):
+                access_token = create_access_token(identity=str(usuario.email))
+                texto = "Login realizado com sucesso"
+                return jsonify({
+                    "Sistema": texto,
 
-            }), 200
+                    "Bem Vindo": usuario.nome,
 
-        return jsonify({"msg": "E-mail ou senha incorretos"}), 401
-    except Exception as e:
-        return jsonify({"msg": str(e)}), 500
-    finally:
-        db.close()
+                }), 200
+
+            return jsonify({"msg": "E-mail ou senha incorretos"}), 401
+        except Exception as e:
+            print(f'error {e}')
+            return jsonify({"msg": str(e)}), 500
+        finally:
+            db_session.close()
 
 
-@app.route('/usuario', methods=['POST'])
-def cadastro():
-    dados = request.get_json()
-    nome = dados.get('nome')
-    email = dados.get('email')
-    cpf = dados.get('cpf')
-    senha = dados.get('senha')
-
-    if not nome or not email or not cpf:
-        return jsonify({"msg": "Preencha todos os campos"}), 400
-
-    db = db_session()
-    try:
-        # Verifica se email já existe
-        check = select(Usuarios).where(Usuarios.email == email)
-        if db.execute(check).scalar():
-            return jsonify({"msg": "Email já cadastrado"}), 409
-
-        novo_cliente = Usuarios(nome=nome, email=email, cpf=cpf)
-        # Método que deve estar no database.py
-
-        db.add(novo_cliente)
-        db.commit()
-        return jsonify({"msg": "Cadastrado com sucesso"}), 201
-    except Exception as e:
-        db.rollback()
-        return jsonify({"msg": str(e)}), 500
-    finally:
-        db.close()
 
 @app.route('/verificar_email',methods=['POST'])
 def verificar_email():
     db = db_session()
     try:
-        json_funcionario_email = request.get_json()
-        email = json_funcionario_email.get('email')
+        json_usuario_email = request.get_json()
+        email = json_usuario_email.get('email')
         verifica_email = select(Usuarios).where(Usuarios.email == email)
         existe_email = db.execute(verifica_email).scalar_one_or_none()
         print(email)
         if existe_email:
-            return jsonify({"funcionario":existe_email.serialize()}), 200
+            return jsonify({"Usuarios":existe_email.serialize()}), 200
 
         else:
 
             return jsonify({"msg": "Email não existe"}), 400
 
     except SQLAlchemyError as e:
-        return jsonify({"msg": f"Erro na base de dados ao logar funcionario: {str(e)}"})
+        return jsonify({"msg": f"Erro na base de dados ao logar Usuario: {str(e)}"})
     except Exception as e:
-        return jsonify({"msg": f"Erro ao logar funcionario: {str(e)}"}), 500
-@app.route('/funcionario', methods=['POST'])
-def cadastro_funcionario():
-    db = db_session()
-    dados = request.get_json()
-    try:
-        if request.method == 'POST':
-            json_funcionario = request.get_json()
-            nome = json_funcionario.get('nome')
-            cpf = json_funcionario.get('cpf')
-            email = json_funcionario.get('email')
-            senha = json_funcionario.get('senha')
-
-            # data_convertida = datetime.strptime(data_nascimento, '%Y-%m-%d')
-            # data_brasil = datetime.strftime(data_convertida, '%d-%m-%Y')
-
-            if not nome or not email or not senha or not cpf:
-                return jsonify({"msg": "Preencher todos os campos"})
-            verifica_email = select(Usuarios).where(Usuarios.email == email)
-            verifica_cpf = select(Usuarios).where(Usuarios.cpf == cpf)
-            existe_email = db.execute(verifica_email, ).scalar_one_or_none()
-            existe_cpf = db.execute(verifica_cpf, ).scalar_one_or_none()
-            if existe_email:
-                return jsonify({"msg": "Email ja existente"})
-
-            if len(cpf) > 11 or len(cpf) < 11:
-                return jsonify({"msg": "cpf invalido"})
-
-            if existe_cpf:
-                return jsonify({"msg": "cpf ja existente"})
-
-            novo_funcionario = Usuarios(nome=nome, email=email, cpf=cpf)
-            # novo_funcionario.set_password(senha)
-            db.add(novo_funcionario)
-            db.commit()
-            funcionario_id = novo_funcionario.id
-
-            return jsonify({"msg": "Funcionario cadastrado com sucesso", "funcionario_id": funcionario_id}), 201
-    except SQLAlchemyError as e:
-        return jsonify({"msg": f"Erro na base de dados ao cadastrar funcionario: {str(e)}"})
-    except Exception as e:
-        return jsonify({"msg": f"Erro ao cadastrar funcionario: {str(e)}"}), 500
-    return jsonify(dados)
+        return jsonify({"msg": f"Erro ao logar Usuario: {str(e)}"}), 500
 
 
+
+# @app.route('/funcionario', methods=['POST'])
+# def cadastro_funcionario():
+#     db = db_session()
+#     dados = request.get_json()
+#     try:
+#         if request.method == 'POST':
+#             json_funcionario = request.get_json()
+#             nome = json_funcionario.get('nome')
+#             cpf = json_funcionario.get('cpf')
+#             email = json_funcionario.get('email')
+#             senha = json_funcionario.get('senha')
+#
+#             # data_convertida = datetime.strptime(data_nascimento, '%Y-%m-%d')
+#             # data_brasil = datetime.strftime(data_convertida, '%d-%m-%Y')
+#
+#             if not nome or not email or not senha or not cpf:
+#                 return jsonify({"msg": "Preencher todos os campos"})
+#             verifica_email = select(Usuarios).where(Usuarios.email == email)
+#             verifica_cpf = select(Usuarios).where(Usuarios.cpf == cpf)
+#             existe_email = db.execute(verifica_email, ).scalar_one_or_none()
+#             existe_cpf = db.execute(verifica_cpf, ).scalar_one_or_none()
+#             if existe_email:
+#                 return jsonify({"msg": "Email ja existente"})
+#
+#             if len(cpf) > 11 or len(cpf) < 11:
+#                 return jsonify({"msg": "cpf invalido"})
+#
+#             if existe_cpf:
+#                 return jsonify({"msg": "cpf ja existente"})
+#
+#             novo_funcionario = Usuarios(nome=nome, email=email, cpf=cpf)
+#             # novo_funcionario.set_password(senha)
+#             db.add(novo_funcionario)
+#             db.commit()
+#             funcionario_id = novo_funcionario.id
+#
+#             return jsonify({"msg": "Funcionario cadastrado com sucesso", "funcionario_id": funcionario_id}), 201
+#     except SQLAlchemyError as e:
+#         return jsonify({"msg": f"Erro na base de dados ao cadastrar funcionario: {str(e)}"})
+#     except Exception as e:
+#         return jsonify({"msg": f"Erro ao cadastrar funcionario: {str(e)}"}), 500
+#     return jsonify(dados)
+#
+#
 
 
 @app.route('/api/dados_protegidos', methods=['GET'])
