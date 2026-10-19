@@ -540,6 +540,7 @@ def login():
 
 
 
+
 @app.route('/verificar_email',methods=['POST'])
 def verificar_email():
     db = db_session()
