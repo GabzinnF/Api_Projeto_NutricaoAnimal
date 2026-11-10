@@ -395,7 +395,10 @@ def listar_galpoes():
         return jsonify({"Galpoes": galpoes}), 200
     finally:
         db.close()
+'''
+JH:
 
+'''
 
 @app.route('/todos_blocos')
 def listar_blocos():
@@ -514,11 +517,13 @@ def login():
             email = dados.get('email')
             senha = dados.get('senha')
 
+            print(f'email e senha : {email} e {senha}')
+
             db = db_session()
             sql = select(Usuarios).where(Usuarios.email == email)
-            usuario = db.execute(sql).scalar()
+            usuario = db.execute(sql).scalars().first()
 
-            print(usuario)
+            print('user',usuario)
 
             # Importante: No database.py, a classe Usuario precisa do metodo check_password_hash
             if usuario and usuario.check_password_hash(senha):
@@ -539,7 +544,10 @@ def login():
             db_session.close()
 
 
-
+# @app.route('/galpao_insumo_bloco_setor', methods=['GET'])
+# def tabelas():
+#     db = db_session()
+#     try
 
 @app.route('/verificar_email',methods=['POST'])
 def verificar_email():

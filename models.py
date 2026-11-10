@@ -162,7 +162,7 @@ class Usuarios(Base):
         self.senha = generate_password_hash(password)
 
 
-    def check_password(self, password):
+    def check_password_hash(self, password):
         return check_password_hash(self.senha, password)
 
 
