@@ -14,9 +14,9 @@ app.config['JWT_SECRET_KEY'] = 'batata'
 jwt = JWTManager(app)
 
 
-# @app.teardown_appcontext
-# def shutdown_session(exception=None):
-#     db_session.remove()
+@app.teardown_appcontext
+ def shutdown_session(exception=None):
+     db_session.remove()
 #
 # @login_manager.user_loader
 # def load_user(user_id):
