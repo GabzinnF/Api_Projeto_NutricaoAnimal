@@ -129,12 +129,21 @@ def criar_galpao():
 
     nome = dados.get('nome')
     descricao = dados.get('descricao')
+    status = dados.get('status', 'Ativo')
 
     if not nome or not descricao:
         return jsonify({"msg": "Preencha todos os campos"}), 400
 
+    if status not in ['Ativo', 'Desativado']:
+        return jsonify({"msg": "Status inválido"}), 400
+
     try:
-        novo_galpao = Galpoes(nome=nome, descricao=descricao)
+
+        novo_galpao = Galpoes(
+            nome=nome,
+            descricao=descricao,
+            status=status
+        )
 
         db_session.add(novo_galpao)
         db_session.commit()
@@ -147,6 +156,43 @@ def criar_galpao():
     except Exception as e:
         db_session.rollback()
         return jsonify({"msg": str(e)}), 500
+
+
+# EDITAR STATUS DO GALPAO
+@app.route('/api/editar_galpao/<int:id_galpao>', methods=['PUT'])
+def editar_galpao(id_galpao):
+
+    dados = request.get_json(silent=True) or {}
+
+    status = dados.get('status')
+
+    if status not in ['Ativo', 'Desativado']:
+        return jsonify({"msg": "Status inválido"}), 400
+
+    try:
+
+        consulta = select(Galpoes).where(
+            Galpoes.id_galpao == id_galpao
+        )
+
+        galpao = db_session.execute(consulta).scalar_one_or_none()
+
+        if galpao is None:
+            return jsonify({"msg": "Galpão não encontrado"}), 404
+
+        galpao.status = status
+
+        db_session.commit()
+
+        return jsonify({
+            "msg": "Status do galpão atualizado com sucesso",
+            "galpao": galpao.serialize()
+        }), 200
+
+    except Exception as e:
+        db_session.rollback()
+        return jsonify({"msg": str(e)}), 500
+
 
 @app.route('/api/cadastrar_blocos', methods=['POST'])
 def criar_bloco():
