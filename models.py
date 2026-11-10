@@ -5,16 +5,17 @@ from sqlalchemy import create_engine, String, Integer, func, Column, DateTime, F
 from sqlalchemy.orm import sessionmaker, scoped_session, declarative_base
 from werkzeug.security import generate_password_hash, check_password_hash
 
+
 engine = create_engine('mysql+pymysql://root:senaisp@localhost:3306/monitoramento_nutricao_animal')
 
 
 session_factory = sessionmaker(bind=engine)
 db_session = scoped_session(session_factory)
-
 Base = declarative_base()
 
 class Insumos(Base):
     __tablename__ = 'insumos'
+
     id_insumo = Column(Integer, primary_key=True)
     tipo = Column(String(255))
     nome = Column(String(100))
@@ -22,11 +23,11 @@ class Insumos(Base):
     umidade_min = Column(String(255))
     temperatura_max = Column(String(255))
     temperatura_min = Column(String(255))
-    quantidade = Column (Integer)
-    unidade_medida = Column (String(255))
+    quantidade = Column(Integer)
+    unidade_medida = Column(String(255))
 
     def serialize(self):
-        dados = {
+        return {
             'id': self.id_insumo,
             'tipo': self.tipo,
             'nome': self.nome,
@@ -37,106 +38,112 @@ class Insumos(Base):
             'quantidade': self.quantidade,
             'unidade_medida': self.unidade_medida
         }
-        return dados
 
 class Galpoes(Base):
     __tablename__ = 'galpoes'
+
     id = Column(Integer, primary_key=True)
     descricao = Column(String(255))
     nome = Column(String(100))
+
     def serialize(self):
-        dados = {
+        return {
             'id': self.id,
             'descricao': self.descricao,
-            'nome': self.nome,
+            'nome': self.nome
         }
-        return dados
 
 class Blocos(Base):
     __tablename__ = 'blocos'
+
     id_bloco = Column(Integer, primary_key=True)
     id_galpao = Column(Integer, ForeignKey('galpoes.id'), nullable=False)
     nome = Column(String(100))
-    def serialize(self):
-        dados = {
-            'id': self.id_bloco,
-            'id_galpoes': self.id_galpao,
-            'nome': self.nome,
-        }
-        return dados
 
-class Setores (Base):
+    def serialize(self):
+        return {
+            'id': self.id_bloco,
+            'id_galpao': self.id_galpao,
+            'nome': self.nome
+        }
+
+class Setores(Base):
     __tablename__ = 'setores'
+
     id_setor = Column(Integer, primary_key=True)
     nome = Column(String(255))
-    capacidade = Column (String(255))
+    capacidade = Column(String(255))
     id_insumo = Column(Integer, ForeignKey('insumos.id_insumo'), nullable=False)
     id_bloco = Column(Integer, ForeignKey('blocos.id_bloco'), nullable=False)
 
     def serialize(self):
-        dados = {
+        return {
             'id_setor': self.id_setor,
-            'nome' : self.nome,
+            'nome': self.nome,
             'capacidade': self.capacidade,
             'id_insumo': self.id_insumo,
-            'id_bloco': self.id_bloco,
+            'id_bloco': self.id_bloco
         }
-        return dados
 
-class Sensores (Base):
+class Sensores(Base):
     __tablename__ = 'sensores'
+
     id_sensor = Column(Integer, primary_key=True)
-    id_setor = Column(Integer,ForeignKey('setores.id_setor'), nullable=False)
+    id_setor = Column(Integer, ForeignKey('setores.id_setor'), nullable=False)
 
     def serialize(self):
-        dados = {
+        return {
             'id_sensor': self.id_sensor,
-            'id_setor': self.id_setor,
+            'id_setor': self.id_setor
         }
-        return dados
 
-class Leituras (Base):
+class Leituras(Base):
     __tablename__ = 'leituras'
+
     id_leitura = Column(Integer, primary_key=True)
-    id_sensor = Column(Integer,ForeignKey('sensores.id_sensor'), nullable=False)
+    id_sensor = Column(Integer, ForeignKey('sensores.id_sensor'), nullable=False)
     valor_leitura_temperatura = Column(String(255))
     valor_leitura_umidade = Column(String(255))
-    data_hora= Column(DateTime,default=func.now)
+    data_hora = Column(DateTime, default=func.now())
 
     def serialize(self):
-        dados = {
+        return {
             'id': self.id_leitura,
             'id_sensor': self.id_sensor,
             'valor_leitura_temperatura': self.valor_leitura_temperatura,
             'valor_leitura_umidade': self.valor_leitura_umidade,
-            'data_hora': self.data_hora,
+            'data_hora': self.data_hora.isoformat() if self.data_hora else None
         }
-        return dados
 
 class AlertaOcorrencias(Base):
     __tablename__ = 'alerta_ocorrencias'
+
     id = Column(Integer, primary_key=True)
-    id_leitura = Column(Integer,ForeignKey('leitura.id'), nullable=False)
+    id_leitura = Column(
+        Integer,
+        ForeignKey('leituras.id_leitura'),
+        nullable=False
+    )
     valor_registrado = Column(Float)
-    data_hora_inicio= Column(DateTime)
-    data_hora_fim= Column(DateTime)
+    data_hora_inicio = Column(DateTime)
+    data_hora_fim = Column(DateTime)
     tipo_alerta = Column(Integer)
-    status_ = Column (String(20))
+    status_ = Column(String(20))
 
     def serialize(self):
-        dados = {
+        return {
             'id': self.id,
             'id_leitura': self.id_leitura,
             'valor_registrado': self.valor_registrado,
-            'data_hora_inicio': self.data_hora_inicio,
-            'data_hora_fim': self.data_hora_fim,
+            'data_hora_inicio': self.data_hora_inicio.isoformat() if self.data_hora_inicio else None,
+            'data_hora_fim': self.data_hora_fim.isoformat() if self.data_hora_fim else None,
             'tipo_alerta': self.tipo_alerta,
-            'status_': self.status_,
+            'status_': self.status_
         }
-        return dados
 
 class Usuarios(Base):
     __tablename__ = 'usuarios'
+
     id_usuario = Column(Integer, primary_key=True)
     nome = Column(String(255))
     cpf = Column(String(11))
@@ -144,23 +151,18 @@ class Usuarios(Base):
     senha = Column(String(255))
 
     def serialize(self):
-        dados = {
+        return {
             'id': self.id_usuario,
             'nome': self.nome,
             'cpf': self.cpf,
-            'email': self.email,
-            'senha' : self.senha
+            'email': self.email
         }
-        return dados
-
 
     def __repr__(self):
         return f'<Usuarios {self.nome}>'
 
-
     def set_password(self, password):
         self.senha = generate_password_hash(password)
-
 
     def check_password_hash(self, password):
         return check_password_hash(self.senha, password)
