@@ -1,564 +1,569 @@
-import datetime
-import random
-import string
-from flask import Flask, jsonify, request, render_template, url_for
+
+from flask import Flask, jsonify, request
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity, JWTManager
 from sqlalchemy import select
-from sqlalchemy.exc import SQLAlchemyError
-from datetime import datetime
-from models import db_session, Insumos, Galpoes , Blocos , Sensores, Setores , Leituras , AlertaOcorrencias, Usuarios # Certifique-se que o database.py está na mesma pasta
+from models import db_session, Usuarios, Insumos, Galpoes, Blocos, Setores, Sensores, Leituras, AlertaOcorrencias
 
 app = Flask(__name__)
 app.config['JWT_SECRET_KEY'] = 'batata'
 jwt = JWTManager(app)
 
 
+@app.teardown_appcontext
+def shutdown_session(exception=None):
+    db_session.remove()
+
+
 @app.route('/')
 def home():
-    return jsonify({"status": "API de Monitoramento de Nutrição Animal Ativa"}), 200
+    return jsonify({"status": "API ativa"})
 
 
-@app.route('/login')
-def tela_login():
-    return render_template('login.html')
+@app.route('/cadastro_usuario', methods=['POST'])
+def cadastro_usuario():
+    dados = request.get_json() or {}
 
-
-@app.route('/cadastro')
-def tela_cadastro():
-    return render_template('cadastro.html')
-
-
-
-@app.route('/api/cadastrar_galpoes', methods=['POST'])
-def criar_galpao():
-    db = db_session()
-    dados = request.get_json()
-    try:
-        if request.method == 'POST':
-            json_galpao = request.get_json()
-            nome = json_galpao.get('nome')
-            descricao = json_galpao.get('descricao')
-
-            if not nome or not descricao    :
-                return jsonify({"msg": "Preencher todos os campos"})
-
-            novo_galpao = Galpoes(
-                nome=nome, descricao=descricao)
-            db.add(novo_galpao)
-            db.commit()
-            return jsonify({
-                "msg": "Galpão criado com sucesso",
-                'galpao': {
-                    "id": novo_galpao.id,
-                    'nome': novo_galpao.nome,
-                    'descricao': novo_galpao.descricao,
-                }
-
-            }), 201
-
-    except Exception as e:
-        db.rollback()
-        return jsonify({"Erro": str(e)}), 500
-
-    return jsonify(dados)
-
-
-@app.route('/api/cadastrar_blocos', methods=['POST'])
-def criar_bloco():
-    db = db_session()
-    dados = request.get_json()
-    print(dados)
-    try:
-        if request.method == 'POST':
-            json_bloco = request.get_json()
-            nome = json_bloco.get('nome')
-            id_galpao = json_bloco.get('id_galpao')
-            print(nome)
-            print(id_galpao)
-            if not nome or not id_galpao:
-                return jsonify({"msg": "Preencher todos os campos"})
-
-            novo_bloco = Blocos(
-                nome=nome, id_galpao=id_galpao)
-            db.add(novo_bloco)
-            db.commit()
-            return jsonify({
-                "msg": "Bloco criado com sucesso",
-                'bloco': {
-                    "id": novo_bloco.id_bloco,
-                    'nome': novo_bloco.nome,
-                    'id_galpao': novo_bloco.id_galpao,
-                }
-
-            }), 201
-
-    except Exception as e:
-        db.rollback()
-        return jsonify({"Erro": str(e)}), 500
-
-    return jsonify(dados)
-
-
-@app.route('/api/cadastrar_setores', methods=['POST'])
-def criar_setores():
-    db = db_session()
-    dados = request.get_json()
-    print(dados)
-    try:
-        if request.method == 'POST':
-            json_setor = request.get_json()
-            nome = json_setor.get('nome')
-            id_insumo = json_setor.get('id_insumo')
-            id_bloco = json_setor.get('id_bloco')
-            capacidade = json_setor.get('capacidade')
-
-            if not nome or not id_insumo or not id_bloco or not capacidade:
-                return jsonify({"msg": "Preencher todos os campos"})
-
-            novo_setor = Setores(
-                nome=nome,id_bloco=id_bloco, id_insumo=id_insumo, capacidade=capacidade)
-            db.add(novo_setor)
-            db.commit()
-            return jsonify({
-                "msg": "Setor criado com sucesso",
-                'setor': {
-                    "id_setor": novo_setor.id_setor,
-                    'nome': novo_setor.nome,
-                    'id_insumo': novo_setor.id_insumo,
-                    'capacidade' : novo_setor.capacidade
-
-                }
-
-            }), 201
-
-    except Exception as e:
-        db.rollback()
-        return jsonify({"Erro": str(e)}), 500
-
-    return jsonify(dados)
-
-
-@app.route('/api/cadastrar_insumos', methods=['POST'])
-def criar_insumos():
-    db = db_session()
-    dados = request.get_json()
-    print(dados)
-    try:
-        if request.method == 'POST':
-            json_insumo = request.get_json()
-            nome = json_insumo.get('nome')
-            tipo = json_insumo.get('tipo')
-            umidade_max = json_insumo.get('umidade_max')
-            umidade_min = json_insumo.get('umidade_min')
-            temperatura_max = json_insumo.get('temperatura_max')
-            temperatura_min = json_insumo.get('temperatura_min')
-            quantidade = json_insumo.get('quantidade')
-            unidade_medida= json_insumo.get('unidade_medida')
-            # print(nome)
-            # print(tipo)
-            # print(umidade_max,"ddd")
-            # print(umidade_min)
-            # print(umidade_atual)
-            # print(temperatura_max)
-            # print(temperatura_min)
-            # print(temperatura_atual)
-            if (not nome or not tipo or not umidade_max or not umidade_min or not temperatura_max or not temperatura_min
-                    or not quantidade or not unidade_medida):
-                return jsonify({"msg": "Preencher todos os campos"})
-
-            novo_insumo = Insumos(
-                nome=nome , tipo=tipo, umidade_max=umidade_max, umidade_min=umidade_min, temperatura_max=temperatura_max,
-                temperatura_min=temperatura_min, quantidade=quantidade, unidade_medida=unidade_medida)
-            db.add(novo_insumo)
-            db.commit()
-            return jsonify({
-                "msg": "Insumo cadastrado com sucesso",
-                'insumo': {
-                    "id": novo_insumo.id_insumo,
-                    'nome': novo_insumo.nome,
-                    'tipo' : novo_insumo.tipo,
-                    'umidade_max' : novo_insumo.umidade_max,
-                    'umidade_min' : novo_insumo.umidade_min,
-                    'temperatura_max' : novo_insumo.temperatura_max,
-                    'temperatura_min' : novo_insumo.temperatura_min,
-                    'quantidade' : novo_insumo.quantidade,
-                    'unidade_medida' : novo_insumo.unidade_medida
-                }
-
-            }), 201
-
-    except Exception as e:
-        db.rollback()
-        return jsonify({"Erro": str(e)}), 500
-
-    return jsonify(dados)
-
-@app.route('/api/cadastrar_leitura', methods=['POST'])
-def criar_leitura():
-    db = db_session()
-    dados = request.get_json()
-    try:
-        if request.method == 'POST':
-
-            json_leitura= request.get_json()
-            id_sensor = json_leitura.get('id_sensor')
-            valor_leitura_umidade = json_leitura.get('valor_leitura_umidade')
-            valor_leitura_temperatura = json_leitura.get('valor_leitura_temperatura')
-            data_hora = datetime.now()
-
-            if not id_sensor or not valor_leitura_temperatura or not valor_leitura_umidade :
-                return jsonify({"msg": "Preencher todos os campos"})
-
-            nova_leitura = (Leituras
-                (
-                valor_leitura_temperatura=valor_leitura_temperatura,valor_leitura_umidade=valor_leitura_umidade, id_sensor=id_sensor, data_hora=data_hora))
-            db.add(nova_leitura)
-            db.commit()
-            return jsonify({
-
-                "msg": "Leitura criado com sucesso",
-                'leitura': {
-                    'id' : nova_leitura.id_leitura,
-                    'id_sensor' : nova_leitura.id_sensor,
-                    'valor_leitura_temperatura' : nova_leitura.valor_leitura_temperatura,
-                    'valor_leitura_umidade' : nova_leitura.valor_leitura_umidade,
-                    'data_hora' : nova_leitura.data_hora
-                }
-
-            }), 201
-
-    except Exception as e:
-        db.rollback()
-        return jsonify({"Erro": str(e)}), 500
-
-    return jsonify(dados)
-
-@app.route('/api/cadastrar_sensores', methods=['POST'])
-def criar_sensores():
-    db = db_session()
-    dados = request.get_json()
-    print(dados)
-    try:
-        if request.method == 'POST':
-            json_sensor = request.get_json()
-            id_setor = json_sensor.get('id_setor')
-
-            if not id_setor :
-                return jsonify({"msg": "Preencher todos os campos"})
-
-            novo_sensor = Sensores(
-                id_setor=id_setor)
-            db.add(novo_sensor)
-            db.commit()
-            return jsonify({
-                "msg": "Sensor cadastrado com sucesso",
-                'sensor': {
-                    "id_sensor": novo_sensor.id_sensor,
-                    'id_setor' : novo_sensor.id_setor,
-
-                }
-
-            }), 201
-
-    except Exception as e:
-        db.rollback()
-        return jsonify({"Erro": str(e)}), 500
-
-    return jsonify(dados)
-
-# @app.route('/api/alertas_ocorrencias', methods=['GET'])
-# def alerta_ocorrencias():
-#     db = db_session()
-#     dados = request.get_json()
-#     try:
-#         if request.method == 'GET':
-#             json_setor = request.get_json()
-#             nome = json_setor.get('nome')
-#             id_galpao = json_setor.get('ID Galpao')
-#             id_insumo = json_setor.get('ID Insumo')
-#             id_bloco = json_setor.get('ID Bloco')
-#
-#             if not nome or not id_galpao or not id_insumo or not id_bloco:
-#                 return jsonify({"msg": "Preencher todos os campos"})
-#
-#             novo_setor = Blocos(
-#                 nome=nome)
-#             db.add(novo_setor)
-#             db.commit()
-#             return jsonify({
-#                 "msg": "Bloco criado com sucesso",
-#                 'bloco': {
-#                     "id": novo_setor.id,
-#                     'nome': novo_setor.nome,
-#                     'id_galpao': novo_setor.id_galpoes,
-#                     'id_insumo': novo_setor.id_insumos,
-#                     'id_bloco' : novo_setor.id_blocos
-#                 }
-#
-#             }), 201
-#
-#     except Exception as e:
-#         db.rollback()
-#         return jsonify({"Erro": str(e)}), 500
-#
-#     return jsonify(dados)
-@app.route('/todos_galpoes')
-def listar_galpoes():
-    # Rota que estava faltando e causava o BuildError
-    db = db_session()
-    try:
-        api_galpoes = select(Galpoes)
-        result = db_session.execute(api_galpoes).scalars().all()
-        galpoes = []
-        for galpao in result:
-            galpoes.append(galpao.serialize())
-        print(result)
-        return jsonify({"Galpoes": galpoes}), 200
-    finally:
-        db.close()
-
-
-@app.route('/todos_blocos')
-def listar_blocos():
-    db = db_session()
-    try:
-        api_bloco = select(Blocos)
-        result = db_session.execute(api_bloco).scalars().all()
-        blocos = []
-        for bloco in result:
-            blocos.append(bloco.serialize())
-        print(result)
-        return jsonify({"remetentes": blocos}), 200
-    finally:
-        db.close()
-
-
-@app.route('/todos_setores')
-def listar_setores():
-    # Rota que estava faltando e causava o BuildError
-    db = db_session()
-    try:
-        api_setor = select(Setores)
-        result = db_session.execute(api_setor).scalars().all()
-        setores = []
-        for setor in result:
-            setores.append(setor.serialize())
-        print(result)
-        return jsonify({"Setores": setores}), 200
-    finally:
-        db.close()
-
-@app.route('/todos_insumos')
-def listar_insumos():
-    # Rota que estava faltando e causava o BuildError
-    db = db_session()
-    try:
-        api_insumo = select(Insumos)
-        result = db_session.execute(api_insumo).scalars().all()
-        insumos = []
-        for insumo in result:
-            insumos.append(insumo.serialize())
-        print(result)
-        return jsonify({"Insumos": insumos}), 200
-    finally:
-        db.close()
-
-
-@app.route('/todos_sensores')
-def listar_sensores():
-    # Rota que estava faltando e causava o BuildError
-    db = db_session()
-    try:
-        api_sensor = select(Sensores)
-        result = db_session.execute(api_sensor).scalars().all()
-        sensores = []
-        for sensor in result:
-            sensores.append(sensor.serialize())
-        print(result)
-        return jsonify({"Sensores": sensores}), 200
-    finally:
-        db.close()
-
-
-@app.route('/todas_leituras')
-def listar_leituras():
-    # Rota que estava faltando e causava o BuildError
-    db = db_session()
-    try:
-        api_leitura = select(Leituras)
-        result = db_session.execute(api_leitura).scalars().all()
-        leituras = []
-        for leitura in result:
-            leituras.append(leitura.serialize())
-        print(result)
-        return jsonify({"Leitura": leituras}), 200
-    finally:
-        db.close()
-
-
-@app.route('/todos_usuarios')
-def listar_usuarios():
-    # Rota que estava faltando e causava o BuildError
-    db = db_session()
-    try:
-        api_usuario = select(Usuarios)
-        result = db_session.execute(api_usuario).scalars().all()
-        usuarios = []
-        for usuario in result:
-            usuarios.append(usuario.serialize())
-        print(result)
-        return jsonify({"Usuario": usuarios}), 200
-    finally:
-        db.close()
-
-@app.route('/todos_alertas')
-def listar_alertas():
-    # Rota que estava faltando e causava o BuildError
-    db = db_session()
-    try:
-        api_alerta = select(AlertaOcorrencias)
-        result = db_session.execute(api_alerta).scalars().all()
-        alertas = []
-        for alerta in result:
-            alertas.append(alerta.serialize())
-        print(result)
-        return jsonify({"Alerta": alertas}), 200
-    finally:
-        db.close()
-
-# --- ROTAS DE API (BACKEND) ---
-
-@app.route('/api/login', methods=['POST'])
-def login():
-    try:
-        dados = request.get_json()
-        email = dados.get('email')
-        senha = dados.get('senha')
-
-        db = db_session()
-        sql = select(Usuarios).where(Usuarios.email == email)
-        usuario = db.execute(sql).scalar()
-
-        # Importante: No database.py, a classe Usuario precisa do método check_password_hash
-        if usuario and usuario.check_password_hash(senha):
-            access_token = create_access_token(identity=str(usuario.email))
-            texto = "Login realizado com sucesso"
-            return jsonify({
-                "Sistema": texto,
-
-                "Bem Vindo": usuario.nome,
-
-            }), 200
-
-        return jsonify({"msg": "E-mail ou senha incorretos"}), 401
-    except Exception as e:
-        return jsonify({"msg": str(e)}), 500
-    finally:
-        db.close()
-
-
-@app.route('/usuario', methods=['POST'])
-def cadastro():
-    dados = request.get_json()
     nome = dados.get('nome')
     email = dados.get('email')
     cpf = dados.get('cpf')
     senha = dados.get('senha')
 
-    if not nome or not email or not cpf:
+    if not nome or not email or not cpf or not senha:
         return jsonify({"msg": "Preencha todos os campos"}), 400
 
-    db = db_session()
+    if len(cpf) != 11:
+        return jsonify({"msg": "CPF inválido"}), 400
+
     try:
-        # Verifica se email já existe
-        check = select(Usuarios).where(Usuarios.email == email)
-        if db.execute(check).scalar():
-            return jsonify({"msg": "Email já cadastrado"}), 409
+        consulta = select(Usuarios).where(Usuarios.email == email)
+        if db_session.execute(consulta).scalar_one_or_none():
+            return jsonify({"msg": "E-mail já cadastrado"}), 409
 
-        novo_cliente = Usuarios(nome=nome, email=email, cpf=cpf)
-        # Método que deve estar no database.py
+        consulta = select(Usuarios).where(Usuarios.cpf == cpf)
+        if db_session.execute(consulta).scalar_one_or_none():
+            return jsonify({"msg": "CPF já cadastrado"}), 409
 
-        db.add(novo_cliente)
-        db.commit()
-        return jsonify({"msg": "Cadastrado com sucesso"}), 201
-    except Exception as e:
-        db.rollback()
-        return jsonify({"msg": str(e)}), 500
-    finally:
-        db.close()
+        usuario = Usuarios(nome=nome, email=email, cpf=cpf)
+        usuario.set_password(senha)
 
-@app.route('/verificar_email',methods=['POST'])
+        db_session.add(usuario)
+        db_session.commit()
+
+        return jsonify({
+            "msg": "Usuário cadastrado com sucesso",
+            "usuario": usuario.serialize()
+        }), 201
+
+    except Exception as erro:
+        db_session.rollback()
+        return jsonify({"msg": str(erro)}), 500
+
+
+@app.route('/api/login', methods=['POST'])
+def login():
+    dados = request.get_json() or {}
+
+    email = dados.get('email')
+    senha = dados.get('senha')
+
+    if not email or not senha:
+        return jsonify({"msg": "Preencha todos os campos"}), 400
+
+    try:
+        consulta = select(Usuarios).where(Usuarios.email == email)
+        usuario = db_session.execute(consulta).scalar_one_or_none()
+
+        if usuario and usuario.check_password_hash(senha):
+            token = create_access_token(identity=str(usuario.id_usuario))
+
+            return jsonify({
+                "msg": "Login realizado com sucesso",
+                "access_token": token,
+                "usuario": usuario.serialize()
+            }), 200
+
+        return jsonify({"msg": "E-mail ou senha incorretos"}), 401
+
+    except Exception as erro:
+        db_session.rollback()
+        return jsonify({"msg": str(erro)}), 500
+
+
+@app.route('/api/cadastrar_galpoes', methods=['POST'])
+def criar_galpao():
+    dados = request.get_json() or {}
+
+    nome = dados.get('nome')
+    descricao = dados.get('descricao')
+    status = dados.get('status', 'Ativo')
+
+    if not nome or not descricao:
+        return jsonify({"msg": "Preencha todos os campos"}), 400
+
+    if status not in ['Ativo', 'Desativado']:
+        return jsonify({"msg": "Status inválido"}), 400
+
+    try:
+        galpao = Galpoes(nome=nome, descricao=descricao, status=status)
+
+        db_session.add(galpao)
+        db_session.commit()
+
+        return jsonify({
+            "msg": "Galpão cadastrado com sucesso",
+            "galpao": galpao.serialize()
+        }), 201
+
+    except Exception as erro:
+        db_session.rollback()
+        return jsonify({"msg": str(erro)}), 500
+
+
+@app.route('/api/editar_galpao/<int:id_galpao>', methods=['PUT'])
+def editar_galpao(id_galpao):
+    dados = request.get_json() or {}
+    status = dados.get('status')
+
+    if status not in ['Ativo', 'Desativado']:
+        return jsonify({"msg": "Status inválido"}), 400
+
+    galpao = db_session.get(Galpoes, id_galpao)
+
+    if not galpao:
+        return jsonify({"msg": "Galpão não encontrado"}), 404
+
+    galpao.status = status
+    db_session.commit()
+
+    return jsonify({
+        "msg": "Status atualizado",
+        "galpao": galpao.serialize()
+    }), 200
+
+
+@app.route('/api/cadastrar_blocos', methods=['POST'])
+def criar_bloco():
+    dados = request.get_json() or {}
+
+    nome = dados.get('nome')
+    id_galpao = dados.get('id_galpao')
+
+    if not nome or not id_galpao:
+        return jsonify({"msg": "Preencha todos os campos"}), 400
+
+    try:
+        bloco = Blocos(nome=nome, id_galpao=id_galpao)
+
+        db_session.add(bloco)
+        db_session.commit()
+
+        return jsonify({
+            "msg": "Bloco cadastrado com sucesso",
+            "bloco": bloco.serialize()
+        }), 201
+
+    except Exception as erro:
+        db_session.rollback()
+        return jsonify({"msg": str(erro)}), 500
+
+
+
+@app.route('/api/cadastrar_setores', methods=['POST'])
+def criar_setor():
+
+    dados = request.get_json() or {}
+
+    nome = dados.get('nome')
+    id_insumo = dados.get('id_insumo')
+    id_bloco = dados.get('id_bloco')
+    capacidade = dados.get('capacidade')
+    quantidade_atual = dados.get('quantidade_atual', 0)
+
+    if not nome or not id_insumo or not id_bloco or not capacidade:
+        return jsonify({"msg": "Preencha todos os campos"}), 400
+
+    try:
+        capacidade = float(capacidade)
+        quantidade_atual = float(quantidade_atual)
+
+        if capacidade <= 0 or quantidade_atual < 0:
+            return jsonify({"msg": "Quantidade inválida"}), 400
+
+        if quantidade_atual > capacidade:
+            return jsonify({
+                "msg": "A quantidade ultrapassa a capacidade do setor"
+            }), 400
+
+        insumo = db_session.get(Insumos, int(id_insumo))
+
+        if not insumo:
+            return jsonify({"msg": "Insumo não encontrado"}), 404
+
+        setores_existentes = db_session.execute(
+            select(Setores).where(Setores.id_insumo == int(id_insumo))
+        ).scalars().all()
+
+        quantidade_distribuida = sum(
+            float(s.quantidade_atual or 0)
+            for s in setores_existentes
+        )
+
+        estoque_total = float(insumo.quantidade or 0)
+
+        if quantidade_distribuida + quantidade_atual > estoque_total:
+            return jsonify({
+                "msg": "Não existe estoque suficiente para essa distribuição"
+            }), 400
+
+        bloco = db_session.get(Blocos, int(id_bloco))
+
+        if not bloco:
+            return jsonify({"msg": "Bloco não encontrado"}), 404
+
+        setor = Setores(
+            nome=nome,
+            id_insumo=id_insumo,
+            id_bloco=id_bloco,
+            capacidade=capacidade,
+            quantidade_atual=quantidade_atual
+        )
+
+        db_session.add(setor)
+        db_session.commit()
+
+        return jsonify({
+            "msg": "Setor cadastrado com sucesso",
+            "setor": setor.serialize()
+        }), 201
+
+    except Exception as erro:
+        db_session.rollback()
+        return jsonify({"msg": str(erro)}), 500
+
+
+@app.route('/api/cadastrar_insumos', methods=['POST'])
+def criar_insumo():
+    dados = request.get_json() or {}
+
+    campos = [
+        'nome', 'tipo', 'umidade_max', 'umidade_min',
+        'temperatura_max', 'temperatura_min',
+        'quantidade', 'unidade_medida'
+    ]
+
+    for campo in campos:
+        if dados.get(campo) is None or dados.get(campo) == '':
+            return jsonify({"msg": "Preencha todos os campos"}), 400
+
+    try:
+        insumo = Insumos(
+            nome=dados['nome'],
+            tipo=dados['tipo'],
+            umidade_max=dados['umidade_max'],
+            umidade_min=dados['umidade_min'],
+            umidade_atual='0',
+            temperatura_max=dados['temperatura_max'],
+            temperatura_min=dados['temperatura_min'],
+            temperatura_atual='0',
+            quantidade=dados['quantidade'],
+            unidade_medida=dados['unidade_medida']
+        )
+
+        db_session.add(insumo)
+        db_session.commit()
+
+        return jsonify({
+            "msg": "Insumo cadastrado com sucesso",
+            "insumo": insumo.serialize()
+        }), 201
+
+    except Exception as erro:
+        db_session.rollback()
+        return jsonify({"msg": str(erro)}), 500
+
+
+@app.route('/api/cadastrar_sensores', methods=['POST'])
+def criar_sensor():
+    dados = request.get_json() or {}
+    id_setor = dados.get('id_setor')
+
+    if not id_setor:
+        return jsonify({"msg": "Informe o setor"}), 400
+
+    try:
+        sensor = Sensores(id_setor=id_setor)
+
+        db_session.add(sensor)
+        db_session.commit()
+
+        return jsonify({
+            "msg": "Sensor cadastrado com sucesso",
+            "sensor": sensor.serialize()
+        }), 201
+
+    except Exception as erro:
+        db_session.rollback()
+        return jsonify({"msg": str(erro)}), 500
+
+
+
+def verificar_alerta(leitura, sensor):
+
+    setor = db_session.get(Setores, sensor.id_setor)
+
+    if not setor:
+        return
+
+    insumo = db_session.get(Insumos, setor.id_insumo)
+
+    if not insumo:
+        return
+
+    valor = float(leitura.valor_leitura)
+
+    if leitura.tipo_leitura == 'temperatura':
+
+        minimo = float(insumo.temperatura_min)
+        maximo = float(insumo.temperatura_max)
+
+        tipo = 1
+
+    else:
+
+        minimo = float(insumo.umidade_min)
+        maximo = float(insumo.umidade_max)
+
+        tipo = 2
+
+    if valor < minimo or valor > maximo:
+
+        status = 'CRÍTICO'
+
+    elif valor >= maximo - 2 or valor <= minimo + 2:
+
+        status = 'ATENÇÃO'
+
+    else:
+        return
+
+    alerta = AlertaOcorrencias(
+        id_leitura=leitura.id_leitura,
+        valor_registrado=leitura.valor_leitura,
+        tipo_alerta=tipo,
+        status_=status
+    )
+
+    db_session.add(alerta)
+
+
+
+@app.route('/api/cadastrar_leituras', methods=['POST'])
+def criar_leitura():
+
+    dados = request.get_json() or {}
+
+    id_sensor = dados.get('id_sensor')
+    temperatura = dados.get('valor_leitura_temperatura')
+    umidade = dados.get('valor_leitura_umidade')
+
+    if id_sensor is None or temperatura is None or umidade is None:
+        return jsonify({"msg": "Preencha todos os campos"}), 400
+
+    try:
+
+        sensor = db_session.get(Sensores, id_sensor)
+
+        if not sensor:
+            return jsonify({"msg": "Sensor não encontrado"}), 404
+
+        setor = db_session.get(Setores, sensor.id_setor)
+
+        if not setor:
+            return jsonify({"msg": "Setor não encontrado"}), 404
+
+        if float(setor.quantidade_atual or 0) <= 0:
+            return jsonify({
+                "msg": "Sensor inativo. O setor não possui insumo."
+            }), 400
+
+        insumo = db_session.get(Insumos, setor.id_insumo)
+
+        if not insumo:
+            return jsonify({"msg": "Insumo não encontrado"}), 404
+
+        leitura_temperatura = Leituras(
+            id_sensor=id_sensor,
+            valor_leitura=int(float(temperatura)),
+            tipo_leitura='temperatura'
+        )
+
+        db_session.add(leitura_temperatura)
+        db_session.flush()
+
+        verificar_alerta(leitura_temperatura, sensor)
+
+        leitura_umidade = Leituras(
+            id_sensor=id_sensor,
+            valor_leitura=int(float(umidade)),
+            tipo_leitura='umidade'
+        )
+
+        db_session.add(leitura_umidade)
+        db_session.flush()
+
+        verificar_alerta(leitura_umidade, sensor)
+
+        insumo.temperatura_atual = str(temperatura)
+        insumo.umidade_atual = str(umidade)
+
+        db_session.commit()
+
+        return jsonify({
+            "msg": "Leituras cadastradas com sucesso",
+            "temperatura": leitura_temperatura.serialize(),
+            "umidade": leitura_umidade.serialize()
+        }), 201
+
+    except Exception as erro:
+
+        db_session.rollback()
+
+        return jsonify({"msg": str(erro)}), 500
+
+
+def listar(modelo, chave):
+    try:
+        resultado = db_session.execute(select(modelo)).scalars().all()
+        dados = [item.serialize() for item in resultado]
+
+        return jsonify({chave: dados}), 200
+
+    except Exception as erro:
+        return jsonify({"msg": str(erro)}), 500
+
+
+@app.route('/todos_galpoes')
+def listar_galpoes():
+    return listar(Galpoes, 'Galpoes')
+
+
+@app.route('/todos_blocos')
+def listar_blocos():
+    return listar(Blocos, 'Blocos')
+
+
+@app.route('/todos_setores')
+def listar_setores():
+    return listar(Setores, 'Setores')
+
+
+@app.route('/todos_insumos')
+def listar_insumos():
+    return listar(Insumos, 'Insumos')
+
+
+@app.route('/todos_sensores')
+def listar_sensores():
+    return listar(Sensores, 'Sensores')
+
+
+@app.route('/todas_leituras')
+def listar_leituras():
+    return listar(Leituras, 'Leitura')
+
+
+@app.route('/todos_usuarios')
+def listar_usuarios():
+    return listar(Usuarios, 'Usuario')
+
+
+
+@app.route('/todos_alertas')
+def listar_alertas():
+    try:
+        resultado = db_session.execute(
+            select(AlertaOcorrencias)
+        ).scalars().all()
+
+        alertas = []
+
+        for alerta in resultado:
+            dados = alerta.serialize()
+
+            leitura = db_session.get(
+                Leituras, alerta.id_leitura
+            )
+
+            nome_setor = "Não identificado"
+            nome_bloco = "Não identificado"
+            nome_galpao = "Não identificado"
+
+            if leitura:
+                sensor = db_session.get(
+                    Sensores, leitura.id_sensor
+                )
+
+                if sensor:
+                    setor = db_session.get(
+                        Setores, sensor.id_setor
+                    )
+
+                    if setor:
+                        nome_setor = setor.nome
+
+                        bloco = db_session.get(
+                            Blocos, setor.id_bloco
+                        )
+
+                        if bloco:
+                            nome_bloco = bloco.nome
+
+                            galpao = db_session.get(
+                                Galpoes, bloco.id_galpao
+                            )
+
+                            if galpao:
+                                nome_galpao = galpao.nome
+
+            dados["nome_setor"] = nome_setor
+            dados["nome_bloco"] = nome_bloco
+            dados["nome_galpao"] = nome_galpao
+
+            alertas.append(dados)
+
+        return jsonify({"Alerta": alertas}), 200
+
+    except Exception as erro:
+        db_session.rollback()
+        return jsonify({"msg": str(erro)}), 500
+
+
+
+@app.route('/verificar_email', methods=['POST'])
 def verificar_email():
-    db = db_session()
-    try:
-        json_funcionario_email = request.get_json()
-        email = json_funcionario_email.get('email')
-        verifica_email = select(Usuarios).where(Usuarios.email == email)
-        existe_email = db.execute(verifica_email).scalar_one_or_none()
-        print(email)
-        if existe_email:
-            return jsonify({"funcionario":existe_email.serialize()}), 200
+    dados = request.get_json() or {}
+    email = dados.get('email')
 
-        else:
+    if not email:
+        return jsonify({"msg": "Informe o e-mail"}), 400
 
-            return jsonify({"msg": "Email não existe"}), 400
+    consulta = select(Usuarios).where(Usuarios.email == email)
+    usuario = db_session.execute(consulta).scalar_one_or_none()
 
-    except SQLAlchemyError as e:
-        return jsonify({"msg": f"Erro na base de dados ao logar funcionario: {str(e)}"})
-    except Exception as e:
-        return jsonify({"msg": f"Erro ao logar funcionario: {str(e)}"}), 500
-@app.route('/funcionario', methods=['POST'])
-def cadastro_funcionario():
-    db = db_session()
-    dados = request.get_json()
-    try:
-        if request.method == 'POST':
-            json_funcionario = request.get_json()
-            nome = json_funcionario.get('nome')
-            cpf = json_funcionario.get('cpf')
-            email = json_funcionario.get('email')
-            senha = json_funcionario.get('senha')
+    if usuario:
+        return jsonify({"Usuario": usuario.serialize()}), 200
 
-            # data_convertida = datetime.strptime(data_nascimento, '%Y-%m-%d')
-            # data_brasil = datetime.strftime(data_convertida, '%d-%m-%Y')
-
-            if not nome or not email or not senha or not cpf:
-                return jsonify({"msg": "Preencher todos os campos"})
-            verifica_email = select(Usuarios).where(Usuarios.email == email)
-            verifica_cpf = select(Usuarios).where(Usuarios.cpf == cpf)
-            existe_email = db.execute(verifica_email, ).scalar_one_or_none()
-            existe_cpf = db.execute(verifica_cpf, ).scalar_one_or_none()
-            if existe_email:
-                return jsonify({"msg": "Email ja existente"})
-
-            if len(cpf) > 11 or len(cpf) < 11:
-                return jsonify({"msg": "cpf invalido"})
-
-            if existe_cpf:
-                return jsonify({"msg": "cpf ja existente"})
-
-            novo_funcionario = Usuarios(nome=nome, email=email, cpf=cpf)
-            # novo_funcionario.set_password(senha)
-            db.add(novo_funcionario)
-            db.commit()
-            funcionario_id = novo_funcionario.id
-
-            return jsonify({"msg": "Funcionario cadastrado com sucesso", "funcionario_id": funcionario_id}), 201
-    except SQLAlchemyError as e:
-        return jsonify({"msg": f"Erro na base de dados ao cadastrar funcionario: {str(e)}"})
-    except Exception as e:
-        return jsonify({"msg": f"Erro ao cadastrar funcionario: {str(e)}"}), 500
-    return jsonify(dados)
+    return jsonify({"msg": "E-mail não encontrado"}), 404
 
 
-
-
-@app.route('/api/dados_protegidos', methods=['GET'])
+@app.route('/api/dados_protegidos')
 @jwt_required()
 def protegido():
-    usuario_atual = get_jwt_identity()
-    return jsonify({"msg": f"Olá {usuario_atual}, você acessou dados protegidos"}), 200
+    return jsonify({
+        "msg": "Acesso autorizado",
+        "usuario": get_jwt_identity()
+    }), 200
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0')
+    app.run(debug=True, host='0.0.0.0', port=5000)
