@@ -1,12 +1,7 @@
 from flask import Flask, jsonify, request
-from flask_jwt_extended import (
-    create_access_token, jwt_required, get_jwt_identity, JWTManager
-)
+from flask_jwt_extended import (create_access_token, jwt_required, get_jwt_identity, JWTManager)
 from sqlalchemy import select
-from models import (
-    db_session, Usuarios, Insumos, Galpoes, Blocos, Setores,
-    Sensores, Leituras, AlertaOcorrencias
-)
+from models import (db_session, Usuarios, Insumos, Galpoes, Blocos, Setores, Sensores, Leituras, AlertaOcorrencias)
 
 app = Flask(__name__)
 app.config["JWT_SECRET_KEY"] = "batata"
