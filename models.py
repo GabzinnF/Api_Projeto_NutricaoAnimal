@@ -167,7 +167,6 @@ class Usuarios(Base):
     def check_password_hash(self, password):
         return check_password_hash(self.senha, password)
 
-
 '''
 No "prever a temp e umidade" seria o seguinte. vamos supor que o mulho aguente 80% de umidade e 20 de temp.
 se a temperatura aumentar ou diminuir, por ex se tiver chegando no 78 ja da um alerta avisando. "a temperatura do bloco tal ou setor tal esta em risco"

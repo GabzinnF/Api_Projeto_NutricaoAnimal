@@ -89,7 +89,7 @@ def login():
     senha = dados.get('senha')
 
     print("EMAIL RECEBIDO:", email)
-    print("SENHA RECEBIDA:", "SIM" if senha else "NÃO")
+    print("SENHA RECEBIDA:", f"SIM:{senha}" if senha else "NÃO")
 
     if not email or not senha:
         return jsonify({
@@ -99,7 +99,8 @@ def login():
     try:
         consulta = select(Usuarios).where(Usuarios.email == email)
 
-        usuario = db_session.execute(consulta).scalar_one_or_none()
+        usuario = db_session.execute(consulta).scalars().first()
+        print('user',usuario)
 
         if usuario and usuario.check_password_hash(senha):
 
@@ -188,6 +189,10 @@ def editar_galpao(id_galpao):
             "msg": "Status do galpão atualizado com sucesso",
             "galpao": galpao.serialize()
         }), 200
+
+
+
+
 
     except Exception as e:
         db_session.rollback()
